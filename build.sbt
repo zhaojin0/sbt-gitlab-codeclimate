@@ -29,7 +29,7 @@ developers := List(
 publishTo := {
   val repo = "https://repo.hxdts.com"
   if (isSnapshot.value) Some("snapshots" at repo + "/snapshots")
-  else Some("releases" at repo + "/public-releases")
+  else Some("releases" at repo + "/releases")
 }
 
 lazy val root = (project in file("."))

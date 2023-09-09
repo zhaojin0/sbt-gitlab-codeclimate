@@ -3,7 +3,8 @@ package com.hxdts.sbt.gitlab.codeclimate
 import sbt.internal.util.ManagedLogger
 import sjsonnew.*
 import sjsonnew.BasicJsonProtocol.*
-import sjsonnew.support.scalajson.unsafe.{CompactPrinter, Converter}
+import sjsonnew.shaded.scalajson.ast.unsafe.{JArray, JNull}
+import sjsonnew.support.scalajson.unsafe.{CompactPrinter, Converter, Parser}
 
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -139,6 +140,55 @@ object converter {
     val filename = node \@ "name"
     val errors = (node \ "error").map(toError)
     CheckstyleFile(filename = filename.replace(basedir, ""), errors = errors)
+  }
+
+  def aggregateConvert(
+      basedir: String,
+      inputs: Seq[String],
+      output: File,
+      log: ManagedLogger
+  ): Unit = {
+
+    val checkstyle = inputs
+      .map { input =>
+        log.info(s"want load in basedir: ${basedir}, checkstyle file: ${input}")
+        val inputXml = XML.load(input)
+        val version = inputXml \@ "version"
+
+        Checkstyle(version, (inputXml \ "file").map(toFile(basedir)))
+      }
+      .reduce((a, b) => Checkstyle(a.version, a.files ++ b.files))
+
+    val json = Converter.toJson(checkstyle)
+
+    json.fold(
+      ex =>
+        log.error(
+          s"convert checkstyle file: ${inputs
+            .mkString(",")} to codeclimate.json file: $output failed: ${ex.getMessage}"
+        ),
+      a =>
+        Using(Files.newBufferedWriter(output.toPath))(
+          CompactPrinter.print(a, _)
+        )
+    )
+  }
+
+  def aggregate(input: Seq[File], output: File, log: ManagedLogger): Unit = {
+
+    val json = input
+      .filter(_.exists())
+      .map(Parser.parseFromFile)
+      .map(s => s.getOrElse(JNull))
+      .flatMap {
+        case JArray(value) => value.to[List]
+        case _             => List.empty
+      }
+      .toArray
+
+    Using(Files.newBufferedWriter(output.toPath))(
+      CompactPrinter.print(JArray(json), _)
+    )
   }
 
 }

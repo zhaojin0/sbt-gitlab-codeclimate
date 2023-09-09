@@ -22,4 +22,7 @@ trait GitlabCodeclimateKeys {
     */
   val `gitlab-codeclimate` =
     taskKey[Unit]("covert checkstyle to gitlab codeclimate formatter")
+
+  val `gitlab-codeclimate-aggregate` =
+    taskKey[Unit]("aggregate checkstyle to gitlab codeclimate formatter")
 }
