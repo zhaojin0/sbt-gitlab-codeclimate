@@ -6,7 +6,7 @@
     credentials ++= Seq()
 }
 
-// USERHOME credentials
+// USER HOME credentials
 Some(Path.userHome / ".sbt" / "credentials")
   .filter(_.exists())
   .filter(_.canRead)
